@@ -10,7 +10,6 @@
 <p align="center">
   <img src="https://img.shields.io/badge/python-3.8+-blue?style=flat-square&logo=python" />
   <img src="https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey?style=flat-square" />
-  <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" />
   <img src="https://img.shields.io/badge/status-active-brightgreen?style=flat-square" />
 </p>
 
@@ -186,12 +185,6 @@ ForenScan/
     ├── metadata.py          # EXIF, PDF, audio/video, filesystem metadata
     └── reporter.py          # Report builder — JSON & text output
 ```
-
----
-
-## 📄 License
-
-This project is licensed under the [MIT License](LICENSE).
 
 ---
 
