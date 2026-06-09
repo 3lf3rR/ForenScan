@@ -29,7 +29,8 @@ Whether you're investigating a suspicious file, validating evidence integrity, o
 
 ```
 
-<img width="860" height="520" alt="image" src="https://github.com/user-attachments/assets/71ca61fa-b213-4555-97bd-0ddcd7b218c7" />
+<img width="860" height="520" alt="image" src="https://github.com/user-attachments/assets/ef08b5af-cdb4-4d49-8a79-2a14b93acd77" />
+
 
 ```
 
