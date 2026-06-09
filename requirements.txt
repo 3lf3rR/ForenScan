@@ -1,0 +1,8 @@
+python-magic
+Pillow
+exifread
+PyMuPDF
+mutagen
+click
+colorama
+tabulate
