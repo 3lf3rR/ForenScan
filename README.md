@@ -27,10 +27,10 @@ Whether you're investigating a suspicious file, validating evidence integrity, o
 ### Tool Banner & Single File Analysis
 > *Running ForenScan against a suspicious file and viewing the full forensic report*
 
-<!-- SCREENSHOT: Run `python main.py --file suspicious.jpg --analyst "Your Name"` and paste a terminal screenshot here -->
-
 ```
-[ screenshot coming soon ]
+
+<img width="860" height="520" alt="image" src="https://github.com/user-attachments/assets/71ca61fa-b213-4555-97bd-0ddcd7b218c7" />
+
 ```
 
 ---
