@@ -41,7 +41,7 @@ def print_banner():
   ╚═╝      ╚═════╝ ╚═╝  ╚═╝╚══════╝╚═╝  ╚═══╝╚══════╝ ╚═════╝╚═╝  ╚═╝╚═╝  ╚═══╝
     """ + Style.RESET_ALL)
     print(Fore.WHITE + Style.BRIGHT + "  Digital Forensics Tool — File Analysis & Metadata Extraction")
-    print(Fore.CYAN + f"  Version {VERSION}  |  github.com/YOUR_USERNAME/ForenScan\n")
+    print(Fore.CYAN + f"  Version {VERSION}  |  github.com/3lf3rR/ForenScan\n")
     print(Fore.WHITE + "  " + "─" * 74 + "\n")
 
 
