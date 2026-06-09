@@ -30,7 +30,7 @@ def build_report(filepath: str, hashes: dict, filetype: dict, metadata: dict, an
 
     return {
         "report_meta": {
-            "tool": "ForensicsCLI",
+            "tool": "ForenScan",
             "version": TOOL_VERSION,
             "analyst": analyst,
             "generated_at": datetime.datetime.now().isoformat(),
