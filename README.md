@@ -10,7 +10,6 @@
 <p align="center">
   <img src="https://img.shields.io/badge/python-3.8+-blue?style=flat-square&logo=python" />
   <img src="https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey?style=flat-square" />
-  <img src="https://img.shields.io/badge/status-active-brightgreen?style=flat-square" />
 </p>
 
 ---
@@ -86,7 +85,7 @@ Whether you're investigating a suspicious file, validating evidence integrity, o
 
 ```bash
 # Clone the repo
-git clone https://github.com/YOUR_USERNAME/ForenScan.git
+git clone https://github.com/3lf3rR/ForenScan.git
 cd ForenScan
 
 # Install Python dependencies
