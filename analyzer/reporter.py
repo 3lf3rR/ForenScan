@@ -1,135 +1,140 @@
-import os
-import stat
+import json
 import datetime
+import os
 
 
-def _get_file_timestamps(filepath: str) -> dict:
-    """Extract filesystem-level timestamps."""
-    try:
-        s = os.stat(filepath)
-        return {
-            "created": datetime.datetime.fromtimestamp(s.st_ctime).isoformat(),
-            "modified": datetime.datetime.fromtimestamp(s.st_mtime).isoformat(),
-            "accessed": datetime.datetime.fromtimestamp(s.st_atime).isoformat(),
-            "size_bytes": s.st_size,
-            "permissions": oct(stat.S_IMODE(s.st_mode)),
-        }
-    except Exception as e:
-        return {"error": str(e)}
+TOOL_VERSION = "1.0.0"
 
 
-def _extract_image_metadata(filepath: str) -> dict:
-    """Extract EXIF and basic metadata from image files."""
-    metadata = {}
+def build_report(filepath: str, hashes: dict, filetype: dict, metadata: dict, analyst: str = "Unknown") -> dict:
+    """Assemble all findings into a structured forensic report."""
+    flags = []
 
-    # Try exifread for detailed EXIF
-    try:
-        import exifread
-        with open(filepath, "rb") as f:
-            tags = exifread.process_file(f, stop_tag="EOF", details=False)
-        exif = {}
-        for tag, value in tags.items():
-            exif[tag] = str(value)
-        if exif:
-            metadata["exif"] = exif
-    except Exception:
-        pass
+    if filetype.get("spoofing_alert"):
+        flags.append(
+            f"EXTENSION SPOOFING: File extension '{filetype.get('file_extension')}' "
+            f"does not match true type '{filetype.get('true_mime')}'"
+        )
 
-    # Pillow for image dimensions and basic info
-    try:
-        from PIL import Image
-        with Image.open(filepath) as img:
-            metadata["dimensions"] = f"{img.width}x{img.height}"
-            metadata["color_mode"] = img.mode
-            metadata["format"] = img.format
-            if hasattr(img, "info"):
-                for k, v in img.info.items():
-                    if isinstance(v, (str, int, float, tuple)):
-                        metadata[f"pil_{k}"] = str(v)
-    except Exception:
-        pass
+    if metadata.get("timestamp_anomaly"):
+        flags.append(metadata["timestamp_anomaly"])
 
-    # Flag if GPS data is present
-    if "exif" in metadata:
-        gps_keys = [k for k in metadata["exif"] if "GPS" in k]
-        metadata["gps_present"] = len(gps_keys) > 0
-        metadata["gps_fields"] = gps_keys if gps_keys else []
+    if hashes.get("error"):
+        flags.append(f"HASHING ERROR: {hashes['error']}")
 
-    return metadata
+    gps = None
+    img_meta = metadata.get("image", {})
+    if img_meta.get("gps_present"):
+        gps = img_meta.get("gps_fields", [])
+        flags.append("GPS DATA PRESENT in image EXIF — location may be embedded.")
 
-
-def _extract_pdf_metadata(filepath: str) -> dict:
-    """Extract metadata from PDF files using PyMuPDF."""
-    try:
-        import fitz  # PyMuPDF
-        doc = fitz.open(filepath)
-        meta = doc.metadata
-        info = {
-            "page_count": doc.page_count,
-            "encrypted": doc.is_encrypted,
-        }
-        for key, value in meta.items():
-            if value:
-                info[key] = value
-        doc.close()
-        return info
-    except Exception as e:
-        return {"error": str(e)}
-
-
-def _extract_audio_video_metadata(filepath: str) -> dict:
-    """Extract metadata from audio and video files using mutagen."""
-    try:
-        import mutagen
-        audio = mutagen.File(filepath, easy=True)
-        if audio is None:
-            return {"error": "mutagen could not read file"}
-        info = {}
-        # Tags
-        for key, value in audio.items():
-            info[key] = str(value)
-        # Stream info
-        if hasattr(audio, "info"):
-            stream = audio.info
-            if hasattr(stream, "length"):
-                info["duration_seconds"] = round(stream.length, 2)
-            if hasattr(stream, "bitrate"):
-                info["bitrate_kbps"] = stream.bitrate
-            if hasattr(stream, "sample_rate"):
-                info["sample_rate_hz"] = stream.sample_rate
-            if hasattr(stream, "channels"):
-                info["channels"] = stream.channels
-        return info
-    except Exception as e:
-        return {"error": str(e)}
-
-
-def extract_metadata(filepath: str, mime_type: str) -> dict:
-    """
-    Route to the correct extractor based on MIME type.
-    Always includes filesystem timestamps.
-    """
-    result = {
-        "filesystem": _get_file_timestamps(filepath),
+    return {
+        "report_meta": {
+            "tool": "ForensicsCLI",
+            "version": TOOL_VERSION,
+            "analyst": analyst,
+            "generated_at": datetime.datetime.now().isoformat(),
+            "target_file": os.path.abspath(filepath),
+            "filename": os.path.basename(filepath),
+        },
+        "hashes": hashes,
+        "filetype": filetype,
+        "metadata": metadata,
+        "flags": flags,
+        "gps_fields_found": gps,
+        "risk_level": _assess_risk(flags),
     }
 
-    if mime_type.startswith("image/"):
-        result["image"] = _extract_image_metadata(filepath)
-    elif mime_type == "application/pdf":
-        result["pdf"] = _extract_pdf_metadata(filepath)
-    elif mime_type.startswith("audio/") or mime_type.startswith("video/"):
-        result["audio_video"] = _extract_audio_video_metadata(filepath)
+
+def _assess_risk(flags: list) -> str:
+    """Simple risk scoring based on number and type of flags."""
+    if not flags:
+        return "CLEAN"
+    for f in flags:
+        if "SPOOFING" in f:
+            return "HIGH"
+    if len(flags) >= 2:
+        return "MEDIUM"
+    return "LOW"
+
+
+def output_json(report: dict, output_path: str = None) -> str:
+    """Serialize report to JSON, optionally writing to file."""
+    content = json.dumps(report, indent=2, default=str)
+    if output_path:
+        with open(output_path, "w") as f:
+            f.write(content)
+    return content
+
+
+def output_text(report: dict, output_path: str = None) -> str:
+    """Format report as a readable text summary."""
+    sep = "=" * 60
+    lines = [
+        sep,
+        "  DIGITAL FORENSICS REPORT",
+        sep,
+        f"  Tool        : {report['report_meta']['tool']} v{report['report_meta']['version']}",
+        f"  Analyst     : {report['report_meta']['analyst']}",
+        f"  Generated   : {report['report_meta']['generated_at']}",
+        f"  Target File : {report['report_meta']['target_file']}",
+        sep,
+        "",
+        "[ HASHES ]",
+        f"  MD5    : {report['hashes'].get('md5', 'N/A')}",
+        f"  SHA-1  : {report['hashes'].get('sha1', 'N/A')}",
+        f"  SHA-256: {report['hashes'].get('sha256', 'N/A')}",
+        "",
+        "[ FILE TYPE ]",
+        f"  True MIME   : {report['filetype'].get('true_mime', 'N/A')}",
+        f"  Description : {report['filetype'].get('true_description', 'N/A')}",
+        f"  Extension   : {report['filetype'].get('file_extension', 'N/A')}",
+        f"  Match       : {'Yes' if report['filetype'].get('extension_match') else 'No' if report['filetype'].get('extension_match') is False else 'Unknown'}",
+        "",
+        "[ FILESYSTEM TIMESTAMPS ]",
+    ]
+
+    fs = report["metadata"].get("filesystem", {})
+    lines += [
+        f"  Created  : {fs.get('created', 'N/A')}",
+        f"  Modified : {fs.get('modified', 'N/A')}",
+        f"  Accessed : {fs.get('accessed', 'N/A')}",
+        f"  Size     : {fs.get('size_bytes', 'N/A')} bytes",
+        "",
+    ]
+
+    # Additional metadata sections
+    for section in ["image", "pdf", "audio_video"]:
+        section_data = report["metadata"].get(section)
+        if section_data:
+            lines.append(f"[ {section.upper()} METADATA ]")
+            for k, v in section_data.items():
+                if k == "exif":
+                    lines.append("  EXIF Tags:")
+                    for ek, ev in v.items():
+                        lines.append(f"    {ek}: {ev}")
+                elif not isinstance(v, (dict, list)):
+                    lines.append(f"  {k}: {v}")
+                elif isinstance(v, list) and v:
+                    lines.append(f"  {k}: {', '.join(str(i) for i in v)}")
+            lines.append("")
+
+    # Flags
+    lines.append("[ FLAGS & ANOMALIES ]")
+    if report["flags"]:
+        for flag in report["flags"]:
+            lines.append(f"  ⚠  {flag}")
     else:
-        result["note"] = f"No specialized extractor for MIME type: {mime_type}"
+        lines.append("  ✓  No anomalies detected.")
 
-    # Timestamp anomaly check: modified before created (possible tampering)
-    fs = result.get("filesystem", {})
-    created = fs.get("created")
-    modified = fs.get("modified")
-    if created and modified and not isinstance(created, dict):
-        if modified < created:
-            result["timestamp_anomaly"] = (
-                "WARNING: File modified timestamp is earlier than created timestamp — possible clock manipulation."
-            )
+    lines += [
+        "",
+        f"[ RISK LEVEL: {report['risk_level']} ]",
+        sep,
+    ]
 
-    return result
+    content = "\n".join(lines)
+    if output_path:
+        with open(output_path, "w") as f:
+            f.write(content)
+    return content
