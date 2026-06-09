@@ -112,7 +112,7 @@ def analyze_file(filepath, analyst, report_format, output, verify_hash_val, algo
 @click.option("--algorithm", default="sha256", type=click.Choice(["md5", "sha1", "sha256"]), show_default=True, help="Hash algorithm for --verify.")
 @click.option("--quiet", "-q", is_flag=True, default=False, help="Suppress progress output; only print the report.")
 def cli(filepath, dirpath, analyst, report_format, output, verify_hash_val, algorithm, quiet):
-    """ForensicsCLI — Analyze files for metadata, hashes, and anomalies."""
+    """ForenScan — Analyze files for metadata, hashes, and anomalies."""
     if not quiet:
         print_banner()
 
